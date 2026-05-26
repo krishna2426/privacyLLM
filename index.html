@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PrivacyLLM</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.x/dist/tabler-icons.min.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div id="app">
+
+  <!-- Top bar -->
+  <div id="topbar">
+    <div id="topbar-left">
+      <div id="shield-icon"><i class="ti ti-shield-lock"></i></div>
+      <div>
+        <div id="app-title">PrivacyLLM</div>
+        <div id="app-subtitle">OpenRouter · Free tier</div>
+      </div>
+    </div>
+    <div id="topbar-right">
+      <div id="token-bar">
+        <div id="token-label">SESSION TOKENS</div>
+        <div id="token-track"><div id="token-fill"></div></div>
+        <div id="token-nums">
+          <span id="tok-used">0</span> used · <span id="tok-left">200,000</span> left
+        </div>
+      </div>
+      <button id="model-btn">
+        <i class="ti ti-cpu"></i>
+        <span id="model-btn-label">Qwen3 Coder</span>
+        <i class="ti ti-chevron-down"></i>
+      </button>
+      <button id="clear-btn" title="Clear chat"><i class="ti ti-eraser"></i></button>
+      <button id="key-btn" title="Set API key"><i class="ti ti-key"></i></button>
+    </div>
+  </div>
+
+  <!-- No-key warning banner -->
+  <div id="no-key-banner">
+    <i class="ti ti-alert-triangle"></i>
+    No API key set. <a id="banner-key-link">Add your OpenRouter key</a> to start chatting.
+  </div>
+
+  <!-- Chat messages -->
+  <div id="messages" role="log" aria-live="polite"></div>
+
+  <!-- Input area -->
+  <div id="input-area">
+    <div id="input-row">
+      <textarea id="msg-input" rows="1" placeholder="Send a message…"></textarea>
+      <button id="send-btn"><i class="ti ti-arrow-up"></i></button>
+    </div>
+    <div id="input-footer">
+      <div id="active-model-tag">
+        <i class="ti ti-cpu"></i>
+        <span id="footer-model">Qwen3 Coder</span>
+      </div>
+      <div id="privacy-tag">
+        <i class="ti ti-shield-check"></i>
+        privacy wrapper active
+      </div>
+    </div>
+  </div>
+
+  <!-- Model switcher modal -->
+  <div class="modal-overlay" id="model-modal-overlay">
+    <div id="modal">
+      <div id="modal-header">
+        <span id="modal-title">Switch model</span>
+        <button class="modal-close" id="modal-close"><i class="ti ti-x"></i></button>
+      </div>
+      <div id="modal-search-wrap">
+        <input id="modal-search" type="text" placeholder="Search models…" />
+      </div>
+      <div id="model-list"></div>
+    </div>
+  </div>
+
+  <!-- API key modal -->
+  <div class="modal-overlay" id="key-modal-overlay">
+    <div id="key-modal">
+      <h3><i class="ti ti-key"></i> OpenRouter API key</h3>
+      <p>Your key is stored only in this browser session — never sent anywhere except directly to OpenRouter's API.</p>
+      <input id="key-input" type="password" placeholder="sk-or-v1-…" spellcheck="false" />
+      <div class="key-modal-btns">
+        <button class="btn-secondary" id="key-cancel">Cancel</button>
+        <button class="btn-primary" id="key-save">Save key</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+
+</body>
+</html>
