@@ -2,10 +2,6 @@
    PrivacyLLM — app.js
    ============================================================ */
 
-// ── Config ────────────────────────────────────────────────────────────────────
-
-// Set your OpenRouter API key here so it loads automatically each session.
-// Get a free key at: https://openrouter.ai/keys
 const OPENPOUTER_API_KEY = typeof MY_API_KEY !== 'undefined' ? MY_API_KEY : "" ;
 
 const TOKEN_LIMIT = 200000; // OpenRouter free tier daily cap
