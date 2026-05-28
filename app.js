@@ -1,8 +1,10 @@
 /* ============================================================
    PrivacyLLM — app.js
+   API key is NOT stored here. It lives in Vercel environment
+   variables and is used only inside /api/chat.js (server-side).
    ============================================================ */
 
-const OPENPOUTER_API_KEY = typeof MY_API_KEY !== 'undefined' ? MY_API_KEY : "" ;
+// ── Config ────────────────────────────────────────────────────────────────────
 
 const TOKEN_LIMIT = 200000; // OpenRouter free tier daily cap
 
@@ -20,7 +22,6 @@ const MODELS = [
 // ── State ─────────────────────────────────────────────────────────────────────
 
 const state = {
-  apiKey:     OPENPOUTER_API_KEY,
   model:      MODELS[0],
   history:    [],
   tokensUsed: 0,
@@ -33,7 +34,6 @@ function fmt(n) {
 }
 
 function estimateTokens(text) {
-  // Rough estimate: ~4 characters per token
   return Math.ceil(text.length / 4);
 }
 
@@ -54,8 +54,8 @@ function updateTokenUI() {
 // ── Model list ────────────────────────────────────────────────────────────────
 
 function renderModelList(filter = "") {
-  const list   = document.getElementById("model-list");
-  const query  = filter.toLowerCase();
+  const list  = document.getElementById("model-list");
+  const query = filter.toLowerCase();
   list.innerHTML = "";
 
   MODELS
@@ -127,8 +127,7 @@ function clearChat(modelName) {
   state.tokensUsed = 0;
   document.getElementById("messages").innerHTML = "";
   updateTokenUI();
-  const label = modelName || state.model.name;
-  addMessage("assistant", `Switched to ${label}. Starting a fresh conversation.`, 0);
+  addMessage("assistant", `Switched to ${modelName || state.model.name}. Starting a fresh conversation.`, 0);
 }
 
 // ── Send message ──────────────────────────────────────────────────────────────
@@ -138,18 +137,10 @@ async function sendMessage() {
   const text  = input.value.trim();
   if (!text) return;
 
-  // Prompt for key if not set
-  if (!state.apiKey || state.apiKey === "sk-or-v1-YOUR_KEY_HERE") {
-    document.getElementById("key-modal-overlay").classList.add("open");
-    document.getElementById("key-input").focus();
-    return;
-  }
-
   input.value = "";
   input.style.height = "auto";
   document.getElementById("send-btn").disabled = true;
 
-  // Add user message
   const userTokens = estimateTokens(text);
   state.tokensUsed += userTokens;
   state.history.push({ role: "user", content: text });
@@ -159,14 +150,10 @@ async function sendMessage() {
   const typing = addTyping();
 
   try {
-    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    // POST to our own serverless proxy — API key never touches the browser
+    const res = await fetch("/api/chat", {
       method: "POST",
-      headers: {
-        "Content-Type":  "application/json",
-        "Authorization": `Bearer ${state.apiKey}`,
-        "HTTP-Referer":  "https://privacyllm.local",
-        "X-Title":       "PrivacyLLM",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         model:    state.model.id,
         messages: state.history,
@@ -181,17 +168,20 @@ async function sendMessage() {
         "⚠ Rate limit hit (429)\n\n" +
         "OpenRouter free tier allows 20 requests/min and 200 requests/day.\n\n" +
         "• Wait until midnight UTC for the daily limit to reset\n" +
-        "• Or switch to the \"Free Router\" model — it spreads load across all free models",
+        "• Or switch to the \"Free Router\" model",
         0);
     } else if (res.status === 401) {
       addMessage("assistant",
-        "⚠ Invalid API key (401)\n\n" +
-        "Click the 🔑 key icon in the top bar and re-enter your OpenRouter key (starts with sk-or-v1-…)",
+        "⚠ Unauthorised (401) — the server-side API key may be missing or invalid.\n\n" +
+        "Check OPENROUTER_API_KEY in Vercel → Settings → Environment Variables.",
         0);
     } else if (res.status === 402) {
       addMessage("assistant",
-        "⚠ Insufficient credits (402)\n\n" +
-        "Switch to a model ending in :free or use the \"Free Router\" option.",
+        "⚠ Insufficient credits (402) — switch to a model ending in :free.",
+        0);
+    } else if (res.status === 500) {
+      addMessage("assistant",
+        "⚠ Server error — OPENROUTER_API_KEY is probably not set in Vercel environment variables.",
         0);
     } else if (data.error) {
       addMessage("assistant", `⚠ Error: ${data.error.message}`, 0);
@@ -199,9 +189,7 @@ async function sendMessage() {
       const reply       = data.choices[0].message.content;
       const usage       = data.usage || {};
       const replyTokens = usage.completion_tokens || estimateTokens(reply);
-
-      // Use exact total from API when available
-      state.tokensUsed = usage.total_tokens || (state.tokensUsed + replyTokens);
+      state.tokensUsed  = usage.total_tokens || (state.tokensUsed + replyTokens);
       state.history.push({ role: "assistant", content: reply });
       addMessage("assistant", reply, replyTokens);
       updateTokenUI();
@@ -217,22 +205,15 @@ async function sendMessage() {
 
 // ── Event listeners ───────────────────────────────────────────────────────────
 
-// Send button & Enter key
 document.getElementById("send-btn").addEventListener("click", sendMessage);
 document.getElementById("msg-input").addEventListener("keydown", e => {
-  if (e.key === "Enter" && !e.shiftKey) {
-    e.preventDefault();
-    sendMessage();
-  }
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
 });
-
-// Auto-grow textarea
 document.getElementById("msg-input").addEventListener("input", function () {
   this.style.height = "auto";
   this.style.height = Math.min(this.scrollHeight, 80) + "px";
 });
 
-// Model switcher
 document.getElementById("model-btn").addEventListener("click", () => {
   document.getElementById("model-modal-overlay").classList.add("open");
   document.getElementById("modal-search").value = "";
@@ -250,39 +231,8 @@ document.getElementById("modal-search").addEventListener("input", function () {
   renderModelList(this.value);
 });
 
-// Clear chat
 document.getElementById("clear-btn").addEventListener("click", () => {
   if (confirm("Clear chat and reset token count?")) clearChat();
-});
-
-// API key modal
-document.getElementById("key-btn").addEventListener("click", () => {
-  document.getElementById("key-modal-overlay").classList.add("open");
-  document.getElementById("key-input").value = state.apiKey;
-  setTimeout(() => document.getElementById("key-input").focus(), 50);
-});
-document.getElementById("banner-key-link").addEventListener("click", () => {
-  document.getElementById("key-modal-overlay").classList.add("open");
-  setTimeout(() => document.getElementById("key-input").focus(), 50);
-});
-document.getElementById("key-cancel").addEventListener("click", () => {
-  document.getElementById("key-modal-overlay").classList.remove("open");
-});
-document.getElementById("key-save").addEventListener("click", () => {
-  const val = document.getElementById("key-input").value.trim();
-  if (val) {
-    state.apiKey = val;
-    document.getElementById("no-key-banner").classList.add("hidden");
-    document.getElementById("key-modal-overlay").classList.remove("open");
-    document.getElementById("msg-input").focus();
-  }
-});
-document.getElementById("key-input").addEventListener("keydown", e => {
-  if (e.key === "Enter") document.getElementById("key-save").click();
-});
-document.getElementById("key-modal-overlay").addEventListener("click", e => {
-  if (e.target.id === "key-modal-overlay")
-    document.getElementById("key-modal-overlay").classList.remove("open");
 });
 
 // ── Init ──────────────────────────────────────────────────────────────────────
@@ -290,13 +240,11 @@ document.getElementById("key-modal-overlay").addEventListener("click", e => {
 renderModelList();
 updateTokenUI();
 
-// Hide banner if key is already set
-if (state.apiKey && state.apiKey !== "sk-or-v1-YOUR_KEY_HERE") {
-  document.getElementById("no-key-banner").classList.add("hidden");
-}
+// Hide the no-key banner — key is managed server-side now
+document.getElementById("no-key-banner").classList.add("hidden");
 
 addMessage(
   "assistant",
-  "Hello! I'm ready to chat. Your messages are routed through the privacy wrapper before reaching the LLM. Set your OpenRouter API key to get started.",
+  "Hello! I'm ready to chat. Your messages are routed through the privacy wrapper before reaching the LLM.",
   0
 );
