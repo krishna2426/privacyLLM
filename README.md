@@ -111,7 +111,3 @@ OpenRouter's free models are rate limited (roughly 20 requests per minute and 20
 ## Author
 
 **Krishna Sharma**: [GitHub](https://github.com/krishna2426) · [LinkedIn](https://linkedin.com/in/krishna-sharma-112366215) · [Portfolio](https://krishna2426.github.io/portfolio/)
-
-## License
-
-No license specified yet. Consider adding one (e.g. MIT) if you want others to reuse the code.
