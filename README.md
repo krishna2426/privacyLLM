@@ -2,7 +2,7 @@
 
 A lightweight, serverless chat interface for free-tier LLMs on [OpenRouter](https://openrouter.ai), built so the **API key never reaches the browser**.
 
-**Live demo:** https://privacyllm.vercel.app
+**Live demo:** https://privacy-llm.vercel.app/
 
 ## Why this exists
 
